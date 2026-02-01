@@ -17,19 +17,19 @@ This PhD Tracker now includes secure authentication using Supabase OAuth. Follow
 
 1. Once your project is created, go to **Settings** → **API**
 2. Copy your:
-   - **Project URL** (looks like: `https://YOUR-PROJECT-ID.supabase.co`)
-   - **Public API Key** (anon key)
+   - **Project URL**: `https://qkoeclfnwiowjpcuqrfj.supabase.co` ✓ (already set)
+   - **Public API Key** (anon key) - you still need to get this
 
 ## Step 3: Update index.html with Your Credentials
 
-In `index.html`, find this section (around line 5820):
+In `index.html`, find this section (around line 5822):
 
 ```javascript
-const SUPABASE_URL = 'https://YOUR-PROJECT-ID.supabase.co';
-const SUPABASE_KEY = 'YOUR-SUPABASE-PUBLIC-KEY';
+const SUPABASE_URL = 'https://qkoeclfnwiowjpcuqrfj.supabase.co'; // ✓ Already set
+const SUPABASE_KEY = 'YOUR-SUPABASE-PUBLIC-KEY'; // ← Update this
 ```
 
-Replace with your actual credentials from Step 2.
+Replace `YOUR-SUPABASE-PUBLIC-KEY` with your actual Public API Key from Step 2.
 
 ## Step 4: Configure OAuth Providers
 
