@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PhD Tracker</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -196,6 +197,111 @@
         .summary h3 {
             font-size: 16px;
             margin-bottom: 10px;
+        }
+
+        #loginScreen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 2000;
+        }
+
+        #loginScreen.hidden {
+            display: none;
+        }
+
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .login-container h1 {
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .login-container p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .login-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .oauth-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .oauth-btn:hover {
+            background: #f5f5f5;
+            border-color: #999;
+        }
+
+        .oauth-btn.github {
+            border-color: #333;
+            color: #333;
+        }
+
+        .oauth-btn.google {
+            border-color: #ddd;
+            color: #1f2937;
+        }
+
+        .oauth-btn.microsoft {
+            border-color: #0078d4;
+            color: #0078d4;
+        }
+
+        #mainContent {
+            display: block;
+        }
+
+        #mainContent.hidden {
+            display: none;
+        }
+
+        .logout-btn {
+            background: #d32f2f;
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .logout-btn:hover {
+            background: #b71c1c;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: auto;
         }
 
         .modal {
@@ -816,13 +922,43 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
+    <!-- Login Screen -->
+    <div id="loginScreen">
+        <div class="login-container">
             <h1>PhD Tracker</h1>
-            <div class="subtitle">Psychology · Human Factors · AI-Assisted Coding</div>
-        </header>
+            <p>Secure access with Supabase</p>
+            <div class="login-buttons">
+                <button class="oauth-btn github" onclick="loginWithGitHub()">
+                    <span>🔗</span> Login with GitHub
+                </button>
+                <button class="oauth-btn google" onclick="loginWithGoogle()">
+                    <span>🔍</span> Login with Google
+                </button>
+                <button class="oauth-btn microsoft" onclick="loginWithMicrosoft()">
+                    <span>🪟</span> Login with Microsoft
+                </button>
+            </div>
+            <p style="margin-top: 20px; font-size: 12px; color: #999;">Secure authentication powered by Supabase</p>
+        </div>
+    </div>
 
-        <div class="tabs">
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+        <div class="container">
+            <header>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>PhD Tracker</h1>
+                        <div class="subtitle">Psychology · Human Factors · AI-Assisted Coding</div>
+                    </div>
+                    <div class="user-info">
+                        <span id="userEmail" style="font-size: 14px; color: #666;"></span>
+                        <button class="logout-btn" onclick="logout()">Logout</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="tabs">
             <div class="tab active" onclick="switchTab('calendar')">Calendar</div>
             <div class="tab" onclick="switchTab('todos')">To Do</div>
             <div class="tab" onclick="switchTab('milestones')">CoC Milestones</div>
@@ -5676,6 +5812,89 @@ function goToOtherChapters(index) {
             </div>
         </div>
     </div>
+        </div> <!-- Close mainContent -->
+    </div>
+
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://YOUR-PROJECT-ID.supabase.co';
+        const SUPABASE_KEY = 'YOUR-SUPABASE-PUBLIC-KEY';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Initialize Authentication on Page Load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeAuth();
+        });
+
+        async function initializeAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            
+            if (session) {
+                showMainContent(session.user.email);
+            } else {
+                showLoginScreen();
+            }
+
+            // Listen for auth changes
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (session) {
+                    showMainContent(session.user.email);
+                } else {
+                    showLoginScreen();
+                }
+            });
+        }
+
+        function showLoginScreen() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+        }
+
+        function showMainContent(userEmail) {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('userEmail').textContent = userEmail;
+        }
+
+        async function loginWithGitHub() {
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'github',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+            if (error) alert('Login failed: ' + error.message);
+        }
+
+        async function loginWithGoogle() {
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+            if (error) alert('Login failed: ' + error.message);
+        }
+
+        async function loginWithMicrosoft() {
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'azure',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+            if (error) alert('Login failed: ' + error.message);
+        }
+
+        async function logout() {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) {
+                alert('Logout failed: ' + error.message);
+            }
+        }
+    </script>
 
 </body>
 </html>
