@@ -1388,9 +1388,9 @@
             <div class="info-processor">
                 <h2 style="margin-bottom: 15px; font-size: 20px;">Supervision Meeting Notes</h2>
                 <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                    Paste your meeting notes or upload a PDF to extract action items and get a summary.
+                    Save your meeting notes and easily add action items to your To-Do list.
                 </p>
-                
+
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label>Meeting Date</label>
                     <input type="date" id="meetingDate" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px;">
@@ -1401,12 +1401,9 @@
                     <input type="file" id="pdfUpload" accept=".pdf" style="margin-bottom: 10px; font-size: 13px;">
                 </div>
 
-                <textarea id="meetingText" placeholder="Or paste your meeting notes here..."></textarea>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="extractActions()">Extract Action Items</button>
-                    <button onclick="summarizeMeeting()" style="background: #666;">Summarize Notes</button>
-                </div>
-                <div id="actionOutput"></div>
+                <textarea id="meetingText" placeholder="Paste your meeting notes here...&#10;&#10;Tip: Use bullet points (-, •, *) or numbered lists (1., 2., 3.) for action items"></textarea>
+                <button onclick="saveAndParseMeeting()" style="width: 100%;">Save & Parse Meeting Notes</button>
+                <div id="actionOutput" style="margin-top: 20px;"></div>
 
                 <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #e0e0e0;">
                     <h3 style="font-size: 18px; margin-bottom: 20px;">Past Meetings</h3>
@@ -2360,7 +2357,7 @@ ${text}`
             }
         }
 
-        async function extractActions() {
+        async function saveAndParseMeeting() {
             let text = document.getElementById('meetingText').value.trim();
             const pdfFile = document.getElementById('pdfUpload').files[0];
             const date = document.getElementById('meetingDate').value;
@@ -2389,132 +2386,157 @@ ${text}`
                 return;
             }
 
-            output.innerHTML = '<div class="summary">Extracting action items...</div>';
+            // Parse action items from text
+            const parsedItems = parseActionItems(text);
 
-            try {
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: 'claude-sonnet-4-20250514',
-                        max_tokens: 1000,
-                        messages: [{
-                            role: 'user',
-                            content: `Extract action items from these supervision meeting notes. For each action item, provide:
-1. What needs to be done (clear, actionable statement)
-2. Any deadline mentioned (if applicable)
-3. Priority level if indicated (high/medium/low)
+            // Save meeting
+            meetings.unshift({
+                date: date,
+                notes: text,
+                actions: parsedItems.map(item => item.text).join('\n'),
+                timestamp: new Date().toISOString()
+            });
+            localStorage.setItem('phdMeetings', JSON.stringify(meetings));
 
-Format as a simple list. Be specific and practical. Only include actual action items, not general discussion points.
-
-Meeting notes:
-${text}`
-                        }]
-                    })
-                });
-
-                const data = await response.json();
-                const actions = data.content.find(c => c.type === 'text')?.text || 'Could not extract actions';
-
-                // Save meeting
-                meetings.unshift({
-                    date: date,
-                    notes: text,
-                    actions: actions,
-                    timestamp: new Date().toISOString()
-                });
-                localStorage.setItem('phdMeetings', JSON.stringify(meetings));
-
+            // Display parsed action items
+            if (parsedItems.length > 0) {
                 output.innerHTML = `
                     <div class="summary">
-                        <h3>Action Items</h3>
-                        ${actions.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('')}
-                        <div style="display: flex; gap: 10px; margin-top: 15px;">
-                            <button class="add-to-milestones" onclick="addActionsToTodos(\`${actions.replace(/`/g, '\\`')}\`)">
-                                Add to To-Do
-                            </button>
-                            <button class="add-to-milestones" onclick="addActionsToMilestones(\`${actions.replace(/`/g, '\\`')}\`)">
-                                Add to Milestones
+                        <h3>Found ${parsedItems.length} Action Item${parsedItems.length !== 1 ? 's' : ''}</h3>
+                        <p style="color: #666; font-size: 13px; margin-bottom: 15px;">Click the button next to any item to add it to your To-Do list</p>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            ${parsedItems.map((item, index) => `
+                                <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f5f5f5; border-radius: 6px;">
+                                    <button
+                                        class="add-to-milestones"
+                                        onclick="addSingleItemToTodos('${item.text.replace(/'/g, "\\'")}', ${index})"
+                                        style="padding: 6px 12px; font-size: 13px; white-space: nowrap; flex-shrink: 0;">
+                                        + Add to To-Do
+                                    </button>
+                                    <span style="flex: 1; padding-top: 6px;">${item.text}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
+                            <button class="add-to-milestones" onclick="addAllItemsToTodos()" style="width: 100%;">
+                                Add All Items to To-Do
                             </button>
                         </div>
                     </div>
                 `;
-
-                // Clear form and refresh history
-                document.getElementById('meetingText').value = '';
-                document.getElementById('meetingDate').value = '';
-                document.getElementById('pdfUpload').value = '';
-                renderMeetingHistory();
-
-            } catch (error) {
-                output.innerHTML = `<div class="summary" style="color: #d32f2f;">Error extracting actions. Please try again.</div>`;
-            }
-        }
-
-        async function summarizeMeeting() {
-            let text = document.getElementById('meetingText').value.trim();
-            const pdfFile = document.getElementById('pdfUpload').files[0];
-            const output = document.getElementById('actionOutput');
-
-            // Get text from PDF if uploaded
-            if (pdfFile) {
-                output.innerHTML = '<div class="summary">Reading PDF...</div>';
-                try {
-                    text = await readPDFText(pdfFile);
-                    // Display extracted text in textarea for reference
-                    document.getElementById('meetingText').value = text;
-                } catch (error) {
-                    output.innerHTML = `<div class="summary" style="color: #d32f2f;">Error reading PDF. Please try pasting text instead.</div>`;
-                    return;
-                }
-            }
-
-            if (!text) {
-                alert('Please upload a PDF or paste your meeting notes');
-                return;
-            }
-
-            output.innerHTML = '<div class="summary">Summarizing your notes...</div>';
-
-            try {
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: 'claude-sonnet-4-20250514',
-                        max_tokens: 1000,
-                        messages: [{
-                            role: 'user',
-                            content: `These are disparate notes from a PhD supervision meeting. Please provide:
-
-1. A clear, organized summary of the main discussion points
-2. Key decisions made
-3. Next steps or follow-up items
-
-Keep it concise and well-structured.
-
-Meeting notes:
-${text}`
-                        }]
-                    })
-                });
-
-                const data = await response.json();
-                const summary = data.content.find(c => c.type === 'text')?.text || 'Could not summarize notes';
-
+            } else {
                 output.innerHTML = `
                     <div class="summary">
-                        <h3>Meeting Summary</h3>
-                        ${summary.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('')}
+                        <h3>Meeting Saved</h3>
+                        <p style="color: #666;">No bullet points or numbered items found. Your notes have been saved to meeting history.</p>
+                        <p style="color: #666; font-size: 13px; margin-top: 10px;">Tip: Use bullet points (-, •, *) or numbered lists (1., 2., 3.) for action items to be detected automatically.</p>
                     </div>
                 `;
+            }
 
-            } catch (error) {
-                output.innerHTML = `<div class="summary" style="color: #d32f2f;">Error summarizing notes. Please try again.</div>`;
+            // Clear form and refresh history
+            document.getElementById('meetingText').value = '';
+            document.getElementById('meetingDate').value = '';
+            document.getElementById('pdfUpload').value = '';
+            renderMeetingHistory();
+        }
+
+        function parseActionItems(text) {
+            const lines = text.split('\n');
+            const items = [];
+
+            lines.forEach(line => {
+                const trimmed = line.trim();
+
+                // Skip empty lines or very short lines
+                if (!trimmed || trimmed.length < 10) return;
+
+                // Match bullet points: -, •, *, ◦, ○, ●
+                const bulletMatch = trimmed.match(/^[\-•\*◦○●]\s+(.+)$/);
+                if (bulletMatch && bulletMatch[1].length >= 10) {
+                    items.push({
+                        text: bulletMatch[1].trim(),
+                        type: 'bullet'
+                    });
+                    return;
+                }
+
+                // Match numbered lists: 1., 2., 3., etc. or 1), 2), 3)
+                const numberedMatch = trimmed.match(/^\d+[\.\)]\s+(.+)$/);
+                if (numberedMatch && numberedMatch[1].length >= 10) {
+                    items.push({
+                        text: numberedMatch[1].trim(),
+                        type: 'numbered'
+                    });
+                    return;
+                }
+
+                // Match lettered lists: a., b., c., etc. or a), b), c)
+                const letteredMatch = trimmed.match(/^[a-z][\.\)]\s+(.+)$/i);
+                if (letteredMatch && letteredMatch[1].length >= 10) {
+                    items.push({
+                        text: letteredMatch[1].trim(),
+                        type: 'lettered'
+                    });
+                    return;
+                }
+            });
+
+            return items;
+        }
+
+        let currentParsedItems = [];
+
+        function addSingleItemToTodos(itemText, index) {
+            // Create to-do item
+            todos.push({
+                title: itemText,
+                date: null,
+                description: 'From supervision meeting',
+                completed: false,
+                priority: 'medium',
+                attachments: [],
+                notes: '',
+                subtasks: []
+            });
+
+            saveTodos();
+            renderTodos();
+
+            // Visual feedback - remove the button and show confirmation
+            const button = event.target;
+            button.textContent = '✓ Added';
+            button.style.background = '#4caf50';
+            button.disabled = true;
+        }
+
+        function addAllItemsToTodos() {
+            const output = document.getElementById('actionOutput');
+            const itemElements = output.querySelectorAll('span[style*="flex: 1"]');
+            let added = 0;
+
+            itemElements.forEach(element => {
+                const text = element.textContent.trim();
+                if (text && text.length >= 10) {
+                    todos.push({
+                        title: text,
+                        date: null,
+                        description: 'From supervision meeting',
+                        completed: false,
+                        priority: 'medium',
+                        attachments: [],
+                        notes: '',
+                        subtasks: []
+                    });
+                    added++;
+                }
+            });
+
+            if (added > 0) {
+                saveTodos();
+                renderTodos();
+                switchTab('todos');
+                alert(`Added ${added} item(s) to your To-Do list!`);
             }
         }
 
