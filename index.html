@@ -2403,15 +2403,20 @@ ${text}`
                 output.innerHTML = `
                     <div class="summary">
                         <h3>Found ${parsedItems.length} Action Item${parsedItems.length !== 1 ? 's' : ''}</h3>
-                        <p style="color: #666; font-size: 13px; margin-bottom: 15px;">Click the button next to any item to add it to your To-Do list</p>
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <p style="color: #666; font-size: 13px; margin-bottom: 15px;">Add relevant items to your To-Do list or skip the ones you don't need</p>
+                        <div id="actionItemsList" style="display: flex; flex-direction: column; gap: 10px;">
                             ${parsedItems.map((item, index) => `
-                                <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f5f5f5; border-radius: 6px;">
+                                <div id="actionItem${index}" style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f5f5f5; border-radius: 6px;">
                                     <button
                                         class="add-to-milestones"
                                         onclick="addSingleItemToTodos('${item.text.replace(/'/g, "\\'")}', ${index})"
                                         style="padding: 6px 12px; font-size: 13px; white-space: nowrap; flex-shrink: 0;">
                                         + Add to To-Do
+                                    </button>
+                                    <button
+                                        onclick="skipActionItem(${index})"
+                                        style="padding: 6px 12px; font-size: 13px; white-space: nowrap; flex-shrink: 0; background: #999; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                        Skip
                                     </button>
                                     <span style="flex: 1; padding-top: 6px;">${item.text}</span>
                                 </div>
@@ -2419,7 +2424,7 @@ ${text}`
                         </div>
                         <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
                             <button class="add-to-milestones" onclick="addAllItemsToTodos()" style="width: 100%;">
-                                Add All Items to To-Do
+                                Add All Remaining Items to To-Do
                             </button>
                         </div>
                     </div>
@@ -2503,40 +2508,89 @@ ${text}`
             saveTodos();
             renderTodos();
 
-            // Visual feedback - remove the button and show confirmation
-            const button = event.target;
-            button.textContent = '✓ Added';
-            button.style.background = '#4caf50';
-            button.disabled = true;
+            // Remove the item from display
+            const itemElement = document.getElementById(`actionItem${index}`);
+            if (itemElement) {
+                itemElement.style.opacity = '0';
+                itemElement.style.transform = 'translateX(-20px)';
+                itemElement.style.transition = 'all 0.3s ease';
+                setTimeout(() => {
+                    itemElement.remove();
+                    checkIfAllItemsProcessed();
+                }, 300);
+            }
+        }
+
+        function skipActionItem(index) {
+            // Remove the item from display without adding to To-Do
+            const itemElement = document.getElementById(`actionItem${index}`);
+            if (itemElement) {
+                itemElement.style.opacity = '0';
+                itemElement.style.transform = 'translateX(20px)';
+                itemElement.style.transition = 'all 0.3s ease';
+                setTimeout(() => {
+                    itemElement.remove();
+                    checkIfAllItemsProcessed();
+                }, 300);
+            }
+        }
+
+        function checkIfAllItemsProcessed() {
+            const actionsList = document.getElementById('actionItemsList');
+            if (actionsList && actionsList.children.length === 0) {
+                const output = document.getElementById('actionOutput');
+                output.innerHTML = `
+                    <div class="summary">
+                        <h3>All Done!</h3>
+                        <p style="color: #666;">All action items have been processed. Your meeting notes are saved in the history below.</p>
+                    </div>
+                `;
+            }
         }
 
         function addAllItemsToTodos() {
-            const output = document.getElementById('actionOutput');
-            const itemElements = output.querySelectorAll('span[style*="flex: 1"]');
+            const actionsList = document.getElementById('actionItemsList');
+            if (!actionsList) return;
+
+            const itemDivs = actionsList.querySelectorAll('[id^="actionItem"]');
             let added = 0;
 
-            itemElements.forEach(element => {
-                const text = element.textContent.trim();
-                if (text && text.length >= 10) {
-                    todos.push({
-                        title: text,
-                        date: null,
-                        description: 'From supervision meeting',
-                        completed: false,
-                        priority: 'medium',
-                        attachments: [],
-                        notes: '',
-                        subtasks: []
-                    });
-                    added++;
+            itemDivs.forEach(itemDiv => {
+                const span = itemDiv.querySelector('span[style*="flex: 1"]');
+                if (span) {
+                    const text = span.textContent.trim();
+                    if (text && text.length >= 10) {
+                        todos.push({
+                            title: text,
+                            date: null,
+                            description: 'From supervision meeting',
+                            completed: false,
+                            priority: 'medium',
+                            attachments: [],
+                            notes: '',
+                            subtasks: []
+                        });
+                        added++;
+                    }
                 }
             });
 
             if (added > 0) {
                 saveTodos();
                 renderTodos();
-                switchTab('todos');
-                alert(`Added ${added} item(s) to your To-Do list!`);
+
+                // Clear the action items display
+                const output = document.getElementById('actionOutput');
+                output.innerHTML = `
+                    <div class="summary">
+                        <h3>All Done!</h3>
+                        <p style="color: #4caf50;">Added ${added} item(s) to your To-Do list!</p>
+                        <p style="color: #666; margin-top: 10px;">Your meeting notes are saved in the history below.</p>
+                    </div>
+                `;
+
+                // Switch to To-Do tab
+                setTimeout(() => switchTab('todos'), 500);
             }
         }
 
