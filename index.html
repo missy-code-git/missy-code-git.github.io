@@ -2431,9 +2431,14 @@ ${text}`
                     <div class="summary">
                         <h3>Action Items</h3>
                         ${actions.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('')}
-                        <button class="add-to-milestones" onclick="addActionsToMilestones(\`${actions.replace(/`/g, '\\`')}\`)">
-                            Add to Milestones
-                        </button>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button class="add-to-milestones" onclick="addActionsToTodos(\`${actions.replace(/`/g, '\\`')}\`)">
+                                Add to To-Do
+                            </button>
+                            <button class="add-to-milestones" onclick="addActionsToMilestones(\`${actions.replace(/`/g, '\\`')}\`)">
+                                Add to Milestones
+                            </button>
+                        </div>
                     </div>
                 `;
 
@@ -2604,6 +2609,82 @@ ${text}`
                 alert(`Added ${added} action item(s) to milestones. Set due dates in the Milestones tab.`);
             } else {
                 alert('No clear action items found to add. You can manually add them in the Milestones tab.');
+            }
+        }
+
+        function addActionsToTodos(actionsText) {
+            const lines = actionsText.split('\n').filter(l => l.trim());
+            let added = 0;
+
+            lines.forEach(line => {
+                const trimmed = line.trim();
+
+                // Skip empty or very short lines
+                if (!trimmed || trimmed.length < 10) return;
+
+                let title = '';
+                let description = '';
+                let priority = 'medium';
+                let date = null;
+
+                // Remove common prefixes (numbers, bullets)
+                let cleanedLine = trimmed.replace(/^[\d\.\-\*•]\s*/, '');
+
+                // Extract priority if mentioned
+                const priorityRegex = /\((high|medium|low)\s*priority\)/i;
+                const priorityMatch = cleanedLine.match(priorityRegex);
+                if (priorityMatch) {
+                    priority = priorityMatch[1].toLowerCase();
+                    cleanedLine = cleanedLine.replace(priorityRegex, '').trim();
+                }
+
+                // Extract deadline if mentioned
+                const dateRegex = /(?:by|due|deadline:?)\s*(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}|[A-Za-z]+\s+\d{1,2})/i;
+                const dateMatch = cleanedLine.match(dateRegex);
+                if (dateMatch) {
+                    description = `Deadline: ${dateMatch[1]}`;
+                    cleanedLine = cleanedLine.replace(dateMatch[0], '').trim();
+                }
+
+                // Split on colon for title/description
+                if (cleanedLine.includes(':')) {
+                    const parts = cleanedLine.split(':');
+                    const potentialTitle = parts[0].trim();
+                    const potentialDesc = parts.slice(1).join(':').trim();
+
+                    if (potentialTitle.length > 3 && potentialDesc.length > 5) {
+                        title = potentialTitle;
+                        description = potentialDesc + (description ? ' | ' + description : '');
+                    } else {
+                        title = cleanedLine;
+                    }
+                } else {
+                    title = cleanedLine;
+                }
+
+                // Add if title is reasonable length
+                if (title && title.length >= 10 && title.length <= 200) {
+                    todos.push({
+                        title: title,
+                        date: date,
+                        description: description || 'From supervision meeting',
+                        completed: false,
+                        priority: priority,
+                        attachments: [],
+                        notes: '',
+                        subtasks: []
+                    });
+                    added++;
+                }
+            });
+
+            if (added > 0) {
+                saveTodos();
+                renderTodos();
+                switchTab('todos');  // Switch to To-Do tab
+                alert(`Added ${added} action item(s) to To-Do list. You can edit priorities and dates in the To-Do tab.`);
+            } else {
+                alert('No clear action items found. You can manually add them in the To-Do tab.');
             }
         }
 
