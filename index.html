@@ -1661,7 +1661,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="form-group">
                     <label>Activity Type</label>
-                    <select id="cpdType" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+                    <select id="cpdType" onchange="toggleEndorsementCheckbox()" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
                         <option value="active">Active CPD (workshop, conference, etc.)</option>
                         <option value="peer">Peer Consultation/Supervision</option>
                         <option value="passive">Passive CPD (reading, webinar)</option>
@@ -1685,6 +1685,15 @@
                     <input type="checkbox" id="cpdIncluded" checked>
                     <span>Include in CPD Portfolio</span>
                 </label>
+            </div>
+            <div class="form-group" id="endorsementCheckboxGroup" style="display: none;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="cpdIncludeInEndorsement" checked>
+                    <span>Count towards Endorsement Active CPD Hours (80 hours required)</span>
+                </label>
+                <p style="color: #666; font-size: 12px; margin-top: 5px; margin-left: 28px;">
+                    Only active CPD relevant to Organisational Psychology should be included for endorsement
+                </p>
             </div>
             <div class="modal-buttons">
                 <button class="btn-secondary" onclick="closeCPDModal()">Cancel</button>
@@ -3230,6 +3239,8 @@ function openCPDModal() {
     document.getElementById('cpdHours').value = '';
     document.getElementById('cpdReflection').value = '';
     document.getElementById('cpdIncluded').checked = true;
+    document.getElementById('cpdIncludeInEndorsement').checked = true;
+    toggleEndorsementCheckbox(); // Show endorsement checkbox for active CPD by default
     document.getElementById('cpdModal').classList.add('active');
 }
 
@@ -3246,6 +3257,17 @@ function closeCPDModalOnOutside(event) {
     if (event.target.id === 'cpdModal') closeCPDModal();
 }
 
+function toggleEndorsementCheckbox() {
+    const cpdType = document.getElementById('cpdType').value;
+    const endorsementGroup = document.getElementById('endorsementCheckboxGroup');
+
+    if (cpdType === 'active') {
+        endorsementGroup.style.display = 'block';
+    } else {
+        endorsementGroup.style.display = 'none';
+    }
+}
+
 function addCPD() {
     const title = document.getElementById('cpdTitle').value.trim();
     const date = document.getElementById('cpdDate').value;
@@ -3254,12 +3276,13 @@ function addCPD() {
     const hours = parseFloat(document.getElementById('cpdHours').value) || 0;
     const reflection = document.getElementById('cpdReflection').value.trim();
     const includedInCPD = document.getElementById('cpdIncluded').checked;
+    const includeInEndorsement = type === 'active' ? document.getElementById('cpdIncludeInEndorsement').checked : false;
 
     if (!title || !date) {
         alert('Please fill in activity title and date');
         return;
     }
-    
+
     if (hours <= 0) {
         alert('Please enter the number of hours for this activity');
         return;
@@ -3273,6 +3296,7 @@ function addCPD() {
         hours,
         reflection,
         includedInCPD,
+        includeInEndorsement,
         attachments: [],
         notes: "",
         cpdEvidence: null
@@ -3288,7 +3312,7 @@ let editingCPDIndex = null;
 function openEditCPDModal(index) {
     editingCPDIndex = index;
     const event = cpdEvents[index];
-    
+
     document.getElementById('cpdTitle').value = event.title;
     document.getElementById('cpdDate').value = event.date;
     document.getElementById('cpdDesc').value = event.description || '';
@@ -3296,12 +3320,15 @@ function openEditCPDModal(index) {
     document.getElementById('cpdHours').value = event.hours || '';
     document.getElementById('cpdReflection').value = event.reflection || '';
     document.getElementById('cpdIncluded').checked = event.includedInCPD;
-    
+    document.getElementById('cpdIncludeInEndorsement').checked = event.includeInEndorsement !== false; // default to true for backward compatibility
+
+    toggleEndorsementCheckbox(); // Show/hide endorsement checkbox based on type
+
     document.querySelector('#cpdModal h2').textContent = 'Edit CPD Activity';
     document.querySelector('#cpdModal .modal-buttons button:last-child').textContent = 'Update';
     document.querySelector('#cpdModal .modal-buttons button:last-child').onclick = updateCPD;
     document.getElementById('cpdDeleteBtn').style.display = 'block';
-    
+
     document.getElementById('cpdModal').classList.add('active');
 }
 
@@ -3313,12 +3340,13 @@ function updateCPD() {
     const hours = parseFloat(document.getElementById('cpdHours').value) || 0;
     const reflection = document.getElementById('cpdReflection').value.trim();
     const includedInCPD = document.getElementById('cpdIncluded').checked;
+    const includeInEndorsement = type === 'active' ? document.getElementById('cpdIncludeInEndorsement').checked : false;
 
     if (!title || !date) {
         alert('Please fill in activity title and date');
         return;
     }
-    
+
     if (hours <= 0) {
         alert('Please enter the number of hours for this activity');
         return;
@@ -3331,6 +3359,7 @@ function updateCPD() {
     cpdEvents[editingCPDIndex].hours = hours;
     cpdEvents[editingCPDIndex].reflection = reflection;
     cpdEvents[editingCPDIndex].includedInCPD = includedInCPD;
+    cpdEvents[editingCPDIndex].includeInEndorsement = includeInEndorsement;
 
     saveCPD();
     renderCPD();
@@ -5676,7 +5705,7 @@ function goToOtherChapters(index) {
             
             // Calculate active CPD hours from CPD tab
             const activeCPDHours = cpdEvents
-                .filter(e => e.includedInCPD && e.type === 'active')
+                .filter(e => e.includedInCPD && e.type === 'active' && e.includeInEndorsement !== false)
                 .reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
             document.getElementById('endorsementActiveCPDHours').textContent = activeCPDHours.toFixed(1);
             document.getElementById('endorsementActiveCPDProgress').style.width = Math.min((activeCPDHours / 80) * 100, 100) + '%';
