@@ -1853,7 +1853,7 @@
                     <span>Include in endorsement</span>
                 </label>
                 <p style="color: #666; font-size: 12px; margin-top: 5px; margin-left: 28px;">
-                    Only active/passive CPD relevant to Organisational Psychology should be included for endorsement
+                    Only CPD relevant to Organisational Psychology should be included for endorsement
                 </p>
             </div>
             <div class="modal-buttons">
@@ -3305,7 +3305,7 @@ function renderCPD() {
                         <span style="background: ${typeInfo.bg}; color: ${typeInfo.color}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${typeInfo.text}</span>
                         <span style="background: #f5f5f5; color: #666; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${event.hours || 0}h</span>
                         ${event.includedInCPD ? '<span style="background: #4caf50; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">✓ Included</span>' : ''}
-                        ${(event.type === 'active' || event.type === 'passive') && event.includeInEndorsement ? '<span style="background: #9c27b0; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">✓ Endorsement</span>' : ''}
+                        ${event.includeInEndorsement ? '<span style="background: #9c27b0; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">✓ Endorsement</span>' : ''}
                     </div>
                     <div class="milestone-date">${formatDate(event.date)}</div>
                 </div>
@@ -3975,12 +3975,8 @@ function toggleEndorsementCheckbox() {
     const peerReflectionGroup = document.getElementById('peerReflectionGroup');
     const activePassiveReflectionGroup = document.getElementById('activePassiveReflectionGroup');
 
-    // Toggle endorsement checkbox (for active and passive)
-    if (cpdType === 'active' || cpdType === 'passive') {
-        endorsementGroup.style.display = 'block';
-    } else {
-        endorsementGroup.style.display = 'none';
-    }
+    // Toggle endorsement checkbox (for all types)
+    endorsementGroup.style.display = 'block';
 
     // Toggle reflection fields based on type
     if (cpdType === 'peer') {
@@ -4014,7 +4010,7 @@ function addCPD() {
     const type = document.getElementById('cpdType').value;
     const hours = parseFloat(document.getElementById('cpdHours').value) || 0;
     const includedInCPD = document.getElementById('cpdIncluded').checked;
-    const includeInEndorsement = (type === 'active' || type === 'passive') ? document.getElementById('cpdIncludeInEndorsement').checked : false;
+    const includeInEndorsement = document.getElementById('cpdIncludeInEndorsement').checked;
 
     // Get reflection fields based on type
     let reflection = '';
@@ -4110,7 +4106,7 @@ function updateCPD() {
     const type = document.getElementById('cpdType').value;
     const hours = parseFloat(document.getElementById('cpdHours').value) || 0;
     const includedInCPD = document.getElementById('cpdIncluded').checked;
-    const includeInEndorsement = (type === 'active' || type === 'passive') ? document.getElementById('cpdIncludeInEndorsement').checked : false;
+    const includeInEndorsement = document.getElementById('cpdIncludeInEndorsement').checked;
 
     // Get reflection fields based on type
     let reflection = '';
@@ -6495,9 +6491,9 @@ function goToOtherChapters(index) {
             document.getElementById('endorsementSupervisionHours').textContent = totalSupervisionHours.toFixed(1);
             document.getElementById('endorsementSupervisionProgress').style.width = Math.min((totalSupervisionHours / 80) * 100, 100) + '%';
             
-            // Calculate active/passive CPD hours from CPD tab (for endorsement)
+            // Calculate CPD hours from CPD tab (for endorsement)
             const activeCPDHours = cpdEvents
-                .filter(e => e.includedInCPD && (e.type === 'active' || e.type === 'passive') && e.includeInEndorsement)
+                .filter(e => e.includedInCPD && e.includeInEndorsement)
                 .reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
             document.getElementById('endorsementActiveCPDHours').textContent = activeCPDHours.toFixed(1);
             document.getElementById('endorsementActiveCPDProgress').style.width = Math.min((activeCPDHours / 80) * 100, 100) + '%';
