@@ -1395,9 +1395,12 @@
                         <label style="display: block; font-weight: 600; color: #555; margin-bottom: 5px; font-size: 13px;">Emerging Trends or Changes in My Practice Area</label>
                         <textarea id="selfAssessmentTrends" rows="4" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px; resize: vertical;" placeholder="Note emerging trends, new research, or changes affecting your practice..."></textarea>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="saveCPDSelfAssessment()" style="padding: 8px 20px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Save</button>
-                        <button onclick="cancelCPDSelfAssessmentEdit()" style="padding: 8px 20px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
+                    <div style="display: flex; gap: 10px; justify-content: space-between;">
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="saveCPDSelfAssessment()" style="padding: 8px 20px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Save</button>
+                            <button onclick="cancelCPDSelfAssessmentEdit()" style="padding: 8px 20px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
+                        </div>
+                        <button onclick="deleteCPDSelfAssessment()" style="padding: 8px 20px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Delete</button>
                     </div>
                 </div>
             </div>
@@ -1771,6 +1774,10 @@
             <div class="form-group">
                 <label>Description (optional)</label>
                 <textarea id="cpdDesc" placeholder="What was this activity about?" style="width: 100%; min-height: 60px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Provider/Source (optional)</label>
+                <input type="text" id="cpdProvider" placeholder="e.g., APS, University of Melbourne, InPsych" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
             </div>
             <div class="form-group">
                 <label>Reflection Journal (required by Psychology Board)</label>
@@ -3451,6 +3458,17 @@ function cancelCPDSelfAssessmentEdit() {
     document.getElementById('editSelfAssessmentBtn').style.display = 'inline-block';
 }
 
+function deleteCPDSelfAssessment() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    if (!selectedYear) return;
+
+    if (confirm('Are you sure you want to delete the self-assessment for ' + selectedYear + '? This will also delete all previous versions.')) {
+        delete cpdSelfAssessments[selectedYear];
+        saveCPDSelfAssessments();
+        renderCPDSelfAssessment();
+    }
+}
+
 function toggleSelfAssessmentHistory() {
     const selectedYear = document.getElementById('cpdYearFilter').value;
     const historyView = document.getElementById('selfAssessmentHistoryView');
@@ -3700,6 +3718,7 @@ function openCPDModal() {
     document.getElementById('cpdTitle').value = '';
     document.getElementById('cpdDate').value = '';
     document.getElementById('cpdDesc').value = '';
+    document.getElementById('cpdProvider').value = '';
     document.getElementById('cpdType').value = 'active';
     document.getElementById('cpdHours').value = '';
     document.getElementById('cpdReflection').value = '';
@@ -3737,6 +3756,7 @@ function addCPD() {
     const title = document.getElementById('cpdTitle').value.trim();
     const date = document.getElementById('cpdDate').value;
     const description = document.getElementById('cpdDesc').value.trim();
+    const provider = document.getElementById('cpdProvider').value.trim();
     const type = document.getElementById('cpdType').value;
     const hours = parseFloat(document.getElementById('cpdHours').value) || 0;
     const reflection = document.getElementById('cpdReflection').value.trim();
@@ -3757,6 +3777,7 @@ function addCPD() {
         title,
         date,
         description,
+        provider,
         type,
         hours,
         reflection,
@@ -3781,6 +3802,7 @@ function openEditCPDModal(index) {
     document.getElementById('cpdTitle').value = event.title;
     document.getElementById('cpdDate').value = event.date;
     document.getElementById('cpdDesc').value = event.description || '';
+    document.getElementById('cpdProvider').value = event.provider || '';
     document.getElementById('cpdType').value = event.type || 'active';
     document.getElementById('cpdHours').value = event.hours || '';
     document.getElementById('cpdReflection').value = event.reflection || '';
@@ -3801,6 +3823,7 @@ function updateCPD() {
     const title = document.getElementById('cpdTitle').value.trim();
     const date = document.getElementById('cpdDate').value;
     const description = document.getElementById('cpdDesc').value.trim();
+    const provider = document.getElementById('cpdProvider').value.trim();
     const type = document.getElementById('cpdType').value;
     const hours = parseFloat(document.getElementById('cpdHours').value) || 0;
     const reflection = document.getElementById('cpdReflection').value.trim();
@@ -3820,6 +3843,7 @@ function updateCPD() {
     cpdEvents[editingCPDIndex].title = title;
     cpdEvents[editingCPDIndex].date = date;
     cpdEvents[editingCPDIndex].description = description;
+    cpdEvents[editingCPDIndex].provider = provider;
     cpdEvents[editingCPDIndex].type = type;
     cpdEvents[editingCPDIndex].hours = hours;
     cpdEvents[editingCPDIndex].reflection = reflection;
