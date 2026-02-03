@@ -3243,7 +3243,8 @@ function renderCPD() {
                 <button class="edit-milestone-btn" onclick="openEditCPDModal(${index})">Edit</button>
             </div>
             ${event.description ? `<div class="milestone-description">${event.description}</div>` : ''}
-            
+            ${event.provider ? `<div style="font-size: 12px; color: #666; margin-top: 5px;"><strong>Provider:</strong> ${event.provider}</div>` : ''}
+
             ${event.reflection ? `
                 <div style="margin-top: 10px; padding: 10px; background: #fffbf0; border-left: 3px solid #ffc107; border-radius: 4px;">
                     <div style="font-size: 12px; color: #666; margin-bottom: 5px; font-weight: 600;">Reflection Journal</div>
@@ -3543,6 +3544,7 @@ function renderCPDLearningGoals() {
 
     let html = '';
     goals.forEach((goal, index) => {
+        const hasHistory = goal.history && goal.history.length > 0;
         html += `
             <div style="background: white; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; margin-bottom: 12px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
@@ -3571,6 +3573,12 @@ function renderCPDLearningGoals() {
                         <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.outcomes || ''}</div>
                     </div>
                 </div>
+                ${hasHistory ? `
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                        <button onclick="toggleLearningGoalHistory(${index})" style="padding: 4px 10px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 11px;">View Previous Versions (${goal.history.length})</button>
+                        <div id="learningGoalHistory-${index}" style="display: none; margin-top: 10px;"></div>
+                    </div>
+                ` : ''}
             </div>
         `;
     });
@@ -3686,8 +3694,32 @@ function updateLearningGoal() {
         return;
     }
 
+    const currentGoal = cpdLearningGoals[selectedYear][editingLearningGoalIndex];
+
+    // Check if content has changed
+    const hasChanged = currentGoal.need !== need ||
+                       currentGoal.rationale !== rationale ||
+                       currentGoal.objectives !== objectives ||
+                       currentGoal.activities !== activities ||
+                       currentGoal.outcomes !== outcomes;
+
+    // Save old version to history if content changed
+    if (hasChanged) {
+        if (!currentGoal.history) {
+            currentGoal.history = [];
+        }
+        currentGoal.history.unshift({
+            need: currentGoal.need,
+            rationale: currentGoal.rationale,
+            objectives: currentGoal.objectives,
+            activities: currentGoal.activities,
+            outcomes: currentGoal.outcomes,
+            savedAt: currentGoal.updatedAt || currentGoal.createdAt
+        });
+    }
+
     cpdLearningGoals[selectedYear][editingLearningGoalIndex] = {
-        ...cpdLearningGoals[selectedYear][editingLearningGoalIndex],
+        ...currentGoal,
         need: need,
         rationale: rationale,
         objectives: objectives,
@@ -3710,6 +3742,48 @@ function deleteLearningGoal() {
         saveCPDLearningGoals();
         closeLearningGoalModal();
         renderCPDLearningGoals();
+    }
+}
+
+function toggleLearningGoalHistory(goalIndex) {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    const historyDiv = document.getElementById(`learningGoalHistory-${goalIndex}`);
+
+    if (!historyDiv) return;
+
+    if (historyDiv.style.display === 'none') {
+        const goal = cpdLearningGoals[selectedYear][goalIndex];
+        if (!goal || !goal.history || goal.history.length === 0) {
+            historyDiv.innerHTML = '<p style="color: #999; font-style: italic; font-size: 12px;">No previous versions.</p>';
+        } else {
+            let html = '<div style="font-size: 12px; color: #666; margin-bottom: 8px; font-weight: 600;">Previous Versions</div>';
+            goal.history.forEach((version, vIndex) => {
+                const date = version.savedAt ? new Date(version.savedAt) : null;
+                const formattedDate = date ? date.toLocaleDateString('en-AU', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : 'Unknown date';
+                html += `
+                    <div style="background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; margin-bottom: 8px;">
+                        <div style="font-size: 11px; color: #999; margin-bottom: 8px;">Saved: ${formattedDate}</div>
+                        <div style="display: grid; gap: 6px; font-size: 12px;">
+                            <div><strong style="color: #555;">Learning Need:</strong> <span style="color: #333;">${version.need || '<em>Empty</em>'}</span></div>
+                            <div><strong style="color: #555;">Rationale:</strong> <span style="color: #333;">${version.rationale || '<em>Empty</em>'}</span></div>
+                            <div><strong style="color: #555;">Learning Objectives:</strong> <span style="color: #333;">${version.objectives || '<em>Empty</em>'}</span></div>
+                            <div><strong style="color: #555;">Planned Activities:</strong> <span style="color: #333;">${version.activities || '<em>Empty</em>'}</span></div>
+                            <div><strong style="color: #555;">Expected Outcomes:</strong> <span style="color: #333;">${version.outcomes || '<em>Empty</em>'}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+            historyDiv.innerHTML = html;
+        }
+        historyDiv.style.display = 'block';
+    } else {
+        historyDiv.style.display = 'none';
     }
 }
 
