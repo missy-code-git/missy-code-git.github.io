@@ -1789,10 +1789,35 @@
                 <label>Provider/Source (optional)</label>
                 <input type="text" id="cpdProvider" placeholder="e.g., APS, University of Melbourne, InPsych" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
             </div>
-            <div class="form-group">
+
+            <!-- Peer Consultation Reflection (shown for peer type) -->
+            <div id="peerReflectionGroup" class="form-group">
                 <label>Reflection Journal (required by Psychology Board)</label>
                 <textarea id="cpdReflection" placeholder="Reflect on what you learned and how it relates to your practice..." style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
             </div>
+
+            <!-- Active/Passive Reflection Fields (shown for active/passive types) -->
+            <div id="activePassiveReflectionGroup" style="display: none;">
+                <div class="form-group">
+                    <label>Link to Learning Goal (optional)</label>
+                    <select id="cpdLinkedGoal" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+                        <option value="">-- No linked goal --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>What I Learned</label>
+                    <textarea id="cpdWhatLearned" placeholder="Describe what you learned from this activity..." style="width: 100%; min-height: 60px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Was My Learning Goal Met? Explain</label>
+                    <textarea id="cpdGoalMet" placeholder="Reflect on whether this activity helped meet your learning goal and explain why/why not..." style="width: 100%; min-height: 60px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Impact/Change to My Practice</label>
+                    <textarea id="cpdPracticeImpact" placeholder="Describe how this learning will impact or change your practice..." style="width: 100%; min-height: 60px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+            </div>
+
             <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                     <input type="checkbox" id="cpdIncluded" checked>
@@ -3265,10 +3290,38 @@ function renderCPD() {
             ${event.description ? `<div class="milestone-description">${event.description}</div>` : ''}
             ${event.provider ? `<div style="font-size: 12px; color: #666; margin-top: 5px;"><strong>Provider:</strong> ${event.provider}</div>` : ''}
 
-            ${event.reflection ? `
+            ${event.type === 'peer' && event.reflection ? `
                 <div style="margin-top: 10px; padding: 10px; background: #fffbf0; border-left: 3px solid #ffc107; border-radius: 4px;">
                     <div style="font-size: 12px; color: #666; margin-bottom: 5px; font-weight: 600;">Reflection Journal</div>
                     <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${event.reflection}</div>
+                </div>
+            ` : ''}
+
+            ${(event.type === 'active' || event.type === 'passive') && (event.whatLearned || event.goalMet || event.practiceImpact || event.linkedGoal) ? `
+                <div style="margin-top: 10px; padding: 10px; background: #fffbf0; border-left: 3px solid #ffc107; border-radius: 4px;">
+                    ${event.linkedGoal !== '' && event.linkedGoal !== undefined ? `
+                        <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                            <strong>Linked to:</strong> Goal ${parseInt(event.linkedGoal) + 1}
+                        </div>
+                    ` : ''}
+                    ${event.whatLearned ? `
+                        <div style="margin-bottom: 8px;">
+                            <div style="font-size: 12px; color: #666; margin-bottom: 3px; font-weight: 600;">What I Learned</div>
+                            <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${event.whatLearned}</div>
+                        </div>
+                    ` : ''}
+                    ${event.goalMet ? `
+                        <div style="margin-bottom: 8px;">
+                            <div style="font-size: 12px; color: #666; margin-bottom: 3px; font-weight: 600;">Was My Learning Goal Met?</div>
+                            <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${event.goalMet}</div>
+                        </div>
+                    ` : ''}
+                    ${event.practiceImpact ? `
+                        <div>
+                            <div style="font-size: 12px; color: #666; margin-bottom: 3px; font-weight: 600;">Impact/Change to My Practice</div>
+                            <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${event.practiceImpact}</div>
+                        </div>
+                    ` : ''}
                 </div>
             ` : ''}
             
@@ -3816,9 +3869,13 @@ function openCPDModal() {
     document.getElementById('cpdType').value = 'active';
     document.getElementById('cpdHours').value = '';
     document.getElementById('cpdReflection').value = '';
+    document.getElementById('cpdLinkedGoal').value = '';
+    document.getElementById('cpdWhatLearned').value = '';
+    document.getElementById('cpdGoalMet').value = '';
+    document.getElementById('cpdPracticeImpact').value = '';
     document.getElementById('cpdIncluded').checked = true;
     document.getElementById('cpdIncludeInEndorsement').checked = true;
-    toggleEndorsementCheckbox(); // Show endorsement checkbox for active CPD by default
+    toggleEndorsementCheckbox(); // Show/hide fields based on type
     document.getElementById('cpdModal').classList.add('active');
 }
 
@@ -3838,12 +3895,38 @@ function closeCPDModalOnOutside(event) {
 function toggleEndorsementCheckbox() {
     const cpdType = document.getElementById('cpdType').value;
     const endorsementGroup = document.getElementById('endorsementCheckboxGroup');
+    const peerReflectionGroup = document.getElementById('peerReflectionGroup');
+    const activePassiveReflectionGroup = document.getElementById('activePassiveReflectionGroup');
 
+    // Toggle endorsement checkbox (only for active)
     if (cpdType === 'active') {
         endorsementGroup.style.display = 'block';
     } else {
         endorsementGroup.style.display = 'none';
     }
+
+    // Toggle reflection fields based on type
+    if (cpdType === 'peer') {
+        peerReflectionGroup.style.display = 'block';
+        activePassiveReflectionGroup.style.display = 'none';
+    } else {
+        peerReflectionGroup.style.display = 'none';
+        activePassiveReflectionGroup.style.display = 'block';
+        populateLearningGoalsDropdown();
+    }
+}
+
+function populateLearningGoalsDropdown() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    const dropdown = document.getElementById('cpdLinkedGoal');
+    const goals = cpdLearningGoals[selectedYear] || [];
+
+    let options = '<option value="">-- No linked goal --</option>';
+    goals.forEach((goal, index) => {
+        const truncatedNeed = goal.need.length > 60 ? goal.need.substring(0, 60) + '...' : goal.need;
+        options += `<option value="${index}">Goal ${index + 1}: ${truncatedNeed}</option>`;
+    });
+    dropdown.innerHTML = options;
 }
 
 function addCPD() {
@@ -3853,9 +3936,24 @@ function addCPD() {
     const provider = document.getElementById('cpdProvider').value.trim();
     const type = document.getElementById('cpdType').value;
     const hours = parseFloat(document.getElementById('cpdHours').value) || 0;
-    const reflection = document.getElementById('cpdReflection').value.trim();
     const includedInCPD = document.getElementById('cpdIncluded').checked;
     const includeInEndorsement = type === 'active' ? document.getElementById('cpdIncludeInEndorsement').checked : false;
+
+    // Get reflection fields based on type
+    let reflection = '';
+    let linkedGoal = '';
+    let whatLearned = '';
+    let goalMet = '';
+    let practiceImpact = '';
+
+    if (type === 'peer') {
+        reflection = document.getElementById('cpdReflection').value.trim();
+    } else {
+        linkedGoal = document.getElementById('cpdLinkedGoal').value;
+        whatLearned = document.getElementById('cpdWhatLearned').value.trim();
+        goalMet = document.getElementById('cpdGoalMet').value.trim();
+        practiceImpact = document.getElementById('cpdPracticeImpact').value.trim();
+    }
 
     if (!title || !date) {
         alert('Please fill in activity title and date');
@@ -3875,6 +3973,10 @@ function addCPD() {
         type,
         hours,
         reflection,
+        linkedGoal,
+        whatLearned,
+        goalMet,
+        practiceImpact,
         includedInCPD,
         includeInEndorsement,
         attachments: [],
@@ -3900,10 +4002,18 @@ function openEditCPDModal(index) {
     document.getElementById('cpdType').value = event.type || 'active';
     document.getElementById('cpdHours').value = event.hours || '';
     document.getElementById('cpdReflection').value = event.reflection || '';
+    document.getElementById('cpdWhatLearned').value = event.whatLearned || '';
+    document.getElementById('cpdGoalMet').value = event.goalMet || '';
+    document.getElementById('cpdPracticeImpact').value = event.practiceImpact || '';
     document.getElementById('cpdIncluded').checked = event.includedInCPD;
     document.getElementById('cpdIncludeInEndorsement').checked = event.includeInEndorsement !== false; // default to true for backward compatibility
 
-    toggleEndorsementCheckbox(); // Show/hide endorsement checkbox based on type
+    toggleEndorsementCheckbox(); // Show/hide fields based on type
+
+    // Set linked goal after dropdown is populated
+    if (event.linkedGoal !== undefined && event.linkedGoal !== '') {
+        document.getElementById('cpdLinkedGoal').value = event.linkedGoal;
+    }
 
     document.querySelector('#cpdModal h2').textContent = 'Edit CPD Activity';
     document.querySelector('#cpdModal .modal-buttons button:last-child').textContent = 'Update';
@@ -3920,9 +4030,24 @@ function updateCPD() {
     const provider = document.getElementById('cpdProvider').value.trim();
     const type = document.getElementById('cpdType').value;
     const hours = parseFloat(document.getElementById('cpdHours').value) || 0;
-    const reflection = document.getElementById('cpdReflection').value.trim();
     const includedInCPD = document.getElementById('cpdIncluded').checked;
     const includeInEndorsement = type === 'active' ? document.getElementById('cpdIncludeInEndorsement').checked : false;
+
+    // Get reflection fields based on type
+    let reflection = '';
+    let linkedGoal = '';
+    let whatLearned = '';
+    let goalMet = '';
+    let practiceImpact = '';
+
+    if (type === 'peer') {
+        reflection = document.getElementById('cpdReflection').value.trim();
+    } else {
+        linkedGoal = document.getElementById('cpdLinkedGoal').value;
+        whatLearned = document.getElementById('cpdWhatLearned').value.trim();
+        goalMet = document.getElementById('cpdGoalMet').value.trim();
+        practiceImpact = document.getElementById('cpdPracticeImpact').value.trim();
+    }
 
     if (!title || !date) {
         alert('Please fill in activity title and date');
@@ -3941,13 +4066,17 @@ function updateCPD() {
     cpdEvents[editingCPDIndex].type = type;
     cpdEvents[editingCPDIndex].hours = hours;
     cpdEvents[editingCPDIndex].reflection = reflection;
+    cpdEvents[editingCPDIndex].linkedGoal = linkedGoal;
+    cpdEvents[editingCPDIndex].whatLearned = whatLearned;
+    cpdEvents[editingCPDIndex].goalMet = goalMet;
+    cpdEvents[editingCPDIndex].practiceImpact = practiceImpact;
     cpdEvents[editingCPDIndex].includedInCPD = includedInCPD;
     cpdEvents[editingCPDIndex].includeInEndorsement = includeInEndorsement;
 
     saveCPD();
     renderCPD();
     closeCPDModal();
-    
+
     document.querySelector('#cpdModal h2').textContent = 'Add CPD Activity';
     document.querySelector('#cpdModal .modal-buttons button:last-child').textContent = 'Add';
     document.querySelector('#cpdModal .modal-buttons button:last-child').onclick = addCPD;
