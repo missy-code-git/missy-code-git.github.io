@@ -1402,6 +1402,52 @@
                 </div>
             </div>
 
+            <!-- Learning Goals Section -->
+            <div id="cpdLearningGoalsSection" style="margin-bottom: 25px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; color: #333;">Learning Goals</h3>
+                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Set 2-4 learning goals for this CPD year</p>
+                    </div>
+                    <button id="addLearningGoalBtn" onclick="openLearningGoalModal()" style="padding: 6px 14px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">+ Add Goal</button>
+                </div>
+                <div id="cpdLearningGoalsList">
+                    <!-- Learning goals will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Learning Goal Modal -->
+            <div id="learningGoalModal" class="modal" onclick="closeLearningGoalModalOnOutside(event)">
+                <div class="modal-content" style="max-width: 600px;">
+                    <h2 id="learningGoalModalTitle">Add Learning Goal</h2>
+                    <div class="form-group">
+                        <label>Learning Need *</label>
+                        <textarea id="learningGoalNeed" rows="2" placeholder="What knowledge, skill, or competency do you need to develop?" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Rationale (Why is this important for my practice?) *</label>
+                        <textarea id="learningGoalRationale" rows="2" placeholder="Explain why this learning goal is important for your professional practice..." style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Learning Objectives *</label>
+                        <textarea id="learningGoalObjectives" rows="2" placeholder="What specific objectives will you achieve?" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Planned Activities *</label>
+                        <textarea id="learningGoalActivities" rows="2" placeholder="What activities will you undertake to achieve this goal?" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Expected Outcomes *</label>
+                        <textarea id="learningGoalOutcomes" rows="2" placeholder="What outcomes do you expect from completing this goal?" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                    </div>
+                    <div class="modal-buttons">
+                        <button onclick="closeLearningGoalModal()" class="btn-secondary">Cancel</button>
+                        <button id="deleteLearningGoalBtn" onclick="deleteLearningGoal()" style="display: none; background: #f44336;">Delete</button>
+                        <button id="saveLearningGoalBtn" onclick="addLearningGoal()">Add Goal</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="cpdList"></div>
 
             <div class="add-milestone" onclick="openCPDModal()">
@@ -1859,6 +1905,7 @@
         let cpdEvents = JSON.parse(localStorage.getItem('phdCPD')) || [];
         let cpdDocuments = JSON.parse(localStorage.getItem('phdCPDDocs')) || [];
         let cpdSelfAssessments = JSON.parse(localStorage.getItem('phdCPDSelfAssessments')) || {};
+        let cpdLearningGoals = JSON.parse(localStorage.getItem('phdCPDLearningGoals')) || {};
 
         function renderMilestones() {
             const list = document.getElementById('milestoneList');
@@ -3147,6 +3194,9 @@ function renderCPD() {
     // Render self-assessment for selected year
     renderCPDSelfAssessment();
 
+    // Render learning goals for selected year
+    renderCPDLearningGoals();
+
     if (filteredEvents.length === 0) {
         list.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">No activities for this period. Click "+ Add CPD Activity" to get started.</div>';
         return;
@@ -3443,6 +3493,205 @@ function toggleSelfAssessmentHistory() {
         historyView.style.display = 'block';
     } else {
         historyView.style.display = 'none';
+    }
+}
+
+// Learning Goals Functions
+let editingLearningGoalIndex = null;
+
+function saveCPDLearningGoals() {
+    localStorage.setItem('phdCPDLearningGoals', JSON.stringify(cpdLearningGoals));
+}
+
+function renderCPDLearningGoals() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    if (!selectedYear) return;
+
+    const goals = cpdLearningGoals[selectedYear] || [];
+    const container = document.getElementById('cpdLearningGoalsList');
+    const addBtn = document.getElementById('addLearningGoalBtn');
+
+    // Show/hide add button based on goal count (max 4)
+    if (goals.length >= 4) {
+        addBtn.style.display = 'none';
+    } else {
+        addBtn.style.display = 'inline-block';
+    }
+
+    if (goals.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 30px; color: #999; font-style: italic;">No learning goals set for this year. Click "+ Add Goal" to create one.</div>';
+        return;
+    }
+
+    let html = '';
+    goals.forEach((goal, index) => {
+        html += `
+            <div style="background: white; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div style="font-weight: 600; color: #333; font-size: 14px;">Goal ${index + 1}</div>
+                    <button onclick="openEditLearningGoalModal(${index})" style="padding: 4px 10px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 12px;">Edit</button>
+                </div>
+                <div style="display: grid; gap: 10px;">
+                    <div>
+                        <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Learning Need</div>
+                        <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.need || ''}</div>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Rationale</div>
+                        <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.rationale || ''}</div>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Learning Objectives</div>
+                        <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.objectives || ''}</div>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Planned Activities</div>
+                        <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.activities || ''}</div>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Expected Outcomes</div>
+                        <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.outcomes || ''}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function openLearningGoalModal() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    const goals = cpdLearningGoals[selectedYear] || [];
+
+    if (goals.length >= 4) {
+        alert('You can only have up to 4 learning goals per year.');
+        return;
+    }
+
+    document.getElementById('learningGoalNeed').value = '';
+    document.getElementById('learningGoalRationale').value = '';
+    document.getElementById('learningGoalObjectives').value = '';
+    document.getElementById('learningGoalActivities').value = '';
+    document.getElementById('learningGoalOutcomes').value = '';
+
+    document.getElementById('learningGoalModalTitle').textContent = 'Add Learning Goal';
+    document.getElementById('saveLearningGoalBtn').textContent = 'Add Goal';
+    document.getElementById('saveLearningGoalBtn').onclick = addLearningGoal;
+    document.getElementById('deleteLearningGoalBtn').style.display = 'none';
+
+    editingLearningGoalIndex = null;
+    document.getElementById('learningGoalModal').classList.add('active');
+}
+
+function closeLearningGoalModal() {
+    document.getElementById('learningGoalModal').classList.remove('active');
+    editingLearningGoalIndex = null;
+}
+
+function closeLearningGoalModalOnOutside(event) {
+    if (event.target.id === 'learningGoalModal') closeLearningGoalModal();
+}
+
+function addLearningGoal() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    if (!selectedYear) return;
+
+    const need = document.getElementById('learningGoalNeed').value.trim();
+    const rationale = document.getElementById('learningGoalRationale').value.trim();
+    const objectives = document.getElementById('learningGoalObjectives').value.trim();
+    const activities = document.getElementById('learningGoalActivities').value.trim();
+    const outcomes = document.getElementById('learningGoalOutcomes').value.trim();
+
+    if (!need || !rationale || !objectives || !activities || !outcomes) {
+        alert('Please fill in all fields.');
+        return;
+    }
+
+    if (!cpdLearningGoals[selectedYear]) {
+        cpdLearningGoals[selectedYear] = [];
+    }
+
+    if (cpdLearningGoals[selectedYear].length >= 4) {
+        alert('You can only have up to 4 learning goals per year.');
+        return;
+    }
+
+    cpdLearningGoals[selectedYear].push({
+        need: need,
+        rationale: rationale,
+        objectives: objectives,
+        activities: activities,
+        outcomes: outcomes,
+        createdAt: new Date().toISOString()
+    });
+
+    saveCPDLearningGoals();
+    closeLearningGoalModal();
+    renderCPDLearningGoals();
+}
+
+function openEditLearningGoalModal(index) {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    const goals = cpdLearningGoals[selectedYear] || [];
+    const goal = goals[index];
+
+    if (!goal) return;
+
+    document.getElementById('learningGoalNeed').value = goal.need || '';
+    document.getElementById('learningGoalRationale').value = goal.rationale || '';
+    document.getElementById('learningGoalObjectives').value = goal.objectives || '';
+    document.getElementById('learningGoalActivities').value = goal.activities || '';
+    document.getElementById('learningGoalOutcomes').value = goal.outcomes || '';
+
+    document.getElementById('learningGoalModalTitle').textContent = 'Edit Learning Goal';
+    document.getElementById('saveLearningGoalBtn').textContent = 'Save Changes';
+    document.getElementById('saveLearningGoalBtn').onclick = updateLearningGoal;
+    document.getElementById('deleteLearningGoalBtn').style.display = 'inline-block';
+
+    editingLearningGoalIndex = index;
+    document.getElementById('learningGoalModal').classList.add('active');
+}
+
+function updateLearningGoal() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    if (!selectedYear || editingLearningGoalIndex === null) return;
+
+    const need = document.getElementById('learningGoalNeed').value.trim();
+    const rationale = document.getElementById('learningGoalRationale').value.trim();
+    const objectives = document.getElementById('learningGoalObjectives').value.trim();
+    const activities = document.getElementById('learningGoalActivities').value.trim();
+    const outcomes = document.getElementById('learningGoalOutcomes').value.trim();
+
+    if (!need || !rationale || !objectives || !activities || !outcomes) {
+        alert('Please fill in all fields.');
+        return;
+    }
+
+    cpdLearningGoals[selectedYear][editingLearningGoalIndex] = {
+        ...cpdLearningGoals[selectedYear][editingLearningGoalIndex],
+        need: need,
+        rationale: rationale,
+        objectives: objectives,
+        activities: activities,
+        outcomes: outcomes,
+        updatedAt: new Date().toISOString()
+    };
+
+    saveCPDLearningGoals();
+    closeLearningGoalModal();
+    renderCPDLearningGoals();
+}
+
+function deleteLearningGoal() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    if (!selectedYear || editingLearningGoalIndex === null) return;
+
+    if (confirm('Are you sure you want to delete this learning goal?')) {
+        cpdLearningGoals[selectedYear].splice(editingLearningGoalIndex, 1);
+        saveCPDLearningGoals();
+        closeLearningGoalModal();
+        renderCPDLearningGoals();
     }
 }
 
