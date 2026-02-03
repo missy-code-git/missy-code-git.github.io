@@ -1296,24 +1296,26 @@
                             <span>APS Member Dashboard</span>
                         </a>
                     </div>
-                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 20px; align-items: flex-start;">
                         <label style="font-size: 14px; color: #666;">
                             CPD Year:
                             <select id="cpdYearFilter" onchange="renderCPD()" style="margin-left: 8px; padding: 5px 10px; border: 1px solid #e0e0e0; border-radius: 4px;">
                             </select>
                         </label>
-                        <label style="font-size: 13px; color: #666; cursor: pointer;">
-                            <input type="checkbox" id="cpdFilterCheckbox" onchange="renderCPD()" style="margin-right: 5px;">
-                            Show included only
-                        </label>
-                        <label style="font-size: 13px; color: #666; cursor: pointer;">
-                            <input type="checkbox" id="cpdFilterPeerOnly" onchange="renderCPD()" style="margin-right: 5px;">
-                            Show peer consultation only
-                        </label>
-                        <label style="font-size: 13px; color: #666; cursor: pointer;">
-                            <input type="checkbox" id="cpdFilterActivePassiveOnly" onchange="renderCPD()" style="margin-right: 5px;">
-                            Show active & passive only
-                        </label>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 13px; color: #666; cursor: pointer;">
+                                <input type="checkbox" id="cpdFilterCheckbox" onchange="renderCPD()" style="margin-right: 5px;">
+                                Show included only
+                            </label>
+                            <label style="font-size: 13px; color: #666; cursor: pointer;">
+                                <input type="checkbox" id="cpdFilterPeerOnly" onchange="renderCPD()" style="margin-right: 5px;">
+                                Show peer consultation only
+                            </label>
+                            <label style="font-size: 13px; color: #666; cursor: pointer;">
+                                <input type="checkbox" id="cpdFilterActivePassiveOnly" onchange="renderCPD()" style="margin-right: 5px;">
+                                Show active & passive only
+                            </label>
+                        </div>
                     </div>
                 </div>
 
