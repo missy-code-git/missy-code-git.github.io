@@ -1434,6 +1434,10 @@
                 <div class="modal-content" style="max-width: 600px;">
                     <h2 id="learningGoalModalTitle">Add Learning Goal</h2>
                     <div class="form-group">
+                        <label>Goal Title *</label>
+                        <input type="text" id="learningGoalTitle" placeholder="e.g., Improve assessment skills" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <div class="form-group">
                         <label>Learning Need *</label>
                         <textarea id="learningGoalNeed" rows="2" placeholder="What knowledge, skill, or competency do you need to develop?" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
                     </div>
@@ -1782,11 +1786,11 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Description (optional)</label>
+                <label>Description</label>
                 <textarea id="cpdDesc" placeholder="What was this activity about?" style="width: 100%; min-height: 60px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
             </div>
             <div class="form-group">
-                <label>Provider/Source (optional)</label>
+                <label>Provider/Source</label>
                 <input type="text" id="cpdProvider" placeholder="e.g., APS, University of Melbourne, InPsych" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
             </div>
 
@@ -1799,7 +1803,7 @@
             <!-- Active/Passive Reflection Fields (shown for active/passive types) -->
             <div id="activePassiveReflectionGroup" style="display: none;">
                 <div class="form-group">
-                    <label>Link to Learning Goal (optional)</label>
+                    <label>Link to Learning Goal</label>
                     <select id="cpdLinkedGoal" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
                         <option value="">-- No linked goal --</option>
                     </select>
@@ -3282,6 +3286,7 @@ function renderCPD() {
                         <span style="background: ${typeInfo.bg}; color: ${typeInfo.color}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${typeInfo.text}</span>
                         <span style="background: #f5f5f5; color: #666; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${event.hours || 0}h</span>
                         ${event.includedInCPD ? '<span style="background: #4caf50; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">✓ Included</span>' : ''}
+                        ${event.type === 'active' && event.includeInEndorsement ? '<span style="background: #9c27b0; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">✓ Endorsement</span>' : ''}
                     </div>
                     <div class="milestone-date">${formatDate(event.date)}</div>
                 </div>
@@ -3301,7 +3306,7 @@ function renderCPD() {
                 <div style="margin-top: 10px; padding: 10px; background: #fffbf0; border-left: 3px solid #ffc107; border-radius: 4px;">
                     ${event.linkedGoal !== '' && event.linkedGoal !== undefined ? `
                         <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                            <strong>Linked to:</strong> Goal ${parseInt(event.linkedGoal) + 1}
+                            <strong>Linked to:</strong> Goal ${parseInt(event.linkedGoal) + 1}${cpdLearningGoals[selectedYear] && cpdLearningGoals[selectedYear][event.linkedGoal] && cpdLearningGoals[selectedYear][event.linkedGoal].title ? ': ' + cpdLearningGoals[selectedYear][event.linkedGoal].title : ''}
                         </div>
                     ` : ''}
                     ${event.whatLearned ? `
@@ -3621,7 +3626,9 @@ function renderCPDLearningGoals() {
         html += `
             <div style="background: white; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; margin-bottom: 12px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                    <div style="font-weight: 600; color: #333; font-size: 14px;">Goal ${index + 1}</div>
+                    <div>
+                        <div style="font-weight: 600; color: #333; font-size: 14px;">Goal ${index + 1}: ${goal.title || 'Untitled'}</div>
+                    </div>
                     <button onclick="openEditLearningGoalModal(${index})" style="padding: 4px 10px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 12px;">Edit</button>
                 </div>
                 <div style="display: grid; gap: 10px;">
@@ -3668,6 +3675,7 @@ function openLearningGoalModal() {
         return;
     }
 
+    document.getElementById('learningGoalTitle').value = '';
     document.getElementById('learningGoalNeed').value = '';
     document.getElementById('learningGoalRationale').value = '';
     document.getElementById('learningGoalObjectives').value = '';
@@ -3696,13 +3704,14 @@ function addLearningGoal() {
     const selectedYear = document.getElementById('cpdYearFilter').value;
     if (!selectedYear) return;
 
+    const title = document.getElementById('learningGoalTitle').value.trim();
     const need = document.getElementById('learningGoalNeed').value.trim();
     const rationale = document.getElementById('learningGoalRationale').value.trim();
     const objectives = document.getElementById('learningGoalObjectives').value.trim();
     const activities = document.getElementById('learningGoalActivities').value.trim();
     const outcomes = document.getElementById('learningGoalOutcomes').value.trim();
 
-    if (!need || !rationale || !objectives || !activities || !outcomes) {
+    if (!title || !need || !rationale || !objectives || !activities || !outcomes) {
         alert('Please fill in all fields.');
         return;
     }
@@ -3717,6 +3726,7 @@ function addLearningGoal() {
     }
 
     cpdLearningGoals[selectedYear].push({
+        title: title,
         need: need,
         rationale: rationale,
         objectives: objectives,
@@ -3737,6 +3747,7 @@ function openEditLearningGoalModal(index) {
 
     if (!goal) return;
 
+    document.getElementById('learningGoalTitle').value = goal.title || '';
     document.getElementById('learningGoalNeed').value = goal.need || '';
     document.getElementById('learningGoalRationale').value = goal.rationale || '';
     document.getElementById('learningGoalObjectives').value = goal.objectives || '';
@@ -3756,13 +3767,14 @@ function updateLearningGoal() {
     const selectedYear = document.getElementById('cpdYearFilter').value;
     if (!selectedYear || editingLearningGoalIndex === null) return;
 
+    const title = document.getElementById('learningGoalTitle').value.trim();
     const need = document.getElementById('learningGoalNeed').value.trim();
     const rationale = document.getElementById('learningGoalRationale').value.trim();
     const objectives = document.getElementById('learningGoalObjectives').value.trim();
     const activities = document.getElementById('learningGoalActivities').value.trim();
     const outcomes = document.getElementById('learningGoalOutcomes').value.trim();
 
-    if (!need || !rationale || !objectives || !activities || !outcomes) {
+    if (!title || !need || !rationale || !objectives || !activities || !outcomes) {
         alert('Please fill in all fields.');
         return;
     }
@@ -3770,7 +3782,8 @@ function updateLearningGoal() {
     const currentGoal = cpdLearningGoals[selectedYear][editingLearningGoalIndex];
 
     // Check if content has changed
-    const hasChanged = currentGoal.need !== need ||
+    const hasChanged = currentGoal.title !== title ||
+                       currentGoal.need !== need ||
                        currentGoal.rationale !== rationale ||
                        currentGoal.objectives !== objectives ||
                        currentGoal.activities !== activities ||
@@ -3782,6 +3795,7 @@ function updateLearningGoal() {
             currentGoal.history = [];
         }
         currentGoal.history.unshift({
+            title: currentGoal.title,
             need: currentGoal.need,
             rationale: currentGoal.rationale,
             objectives: currentGoal.objectives,
@@ -3793,6 +3807,7 @@ function updateLearningGoal() {
 
     cpdLearningGoals[selectedYear][editingLearningGoalIndex] = {
         ...currentGoal,
+        title: title,
         need: need,
         rationale: rationale,
         objectives: objectives,
@@ -3843,6 +3858,7 @@ function toggleLearningGoalHistory(goalIndex) {
                     <div style="background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; margin-bottom: 8px;">
                         <div style="font-size: 11px; color: #999; margin-bottom: 8px;">Saved: ${formattedDate}</div>
                         <div style="display: grid; gap: 6px; font-size: 12px;">
+                            <div><strong style="color: #555;">Title:</strong> <span style="color: #333;">${version.title || '<em>Empty</em>'}</span></div>
                             <div><strong style="color: #555;">Learning Need:</strong> <span style="color: #333;">${version.need || '<em>Empty</em>'}</span></div>
                             <div><strong style="color: #555;">Rationale:</strong> <span style="color: #333;">${version.rationale || '<em>Empty</em>'}</span></div>
                             <div><strong style="color: #555;">Learning Objectives:</strong> <span style="color: #333;">${version.objectives || '<em>Empty</em>'}</span></div>
@@ -3923,8 +3939,8 @@ function populateLearningGoalsDropdown() {
 
     let options = '<option value="">-- No linked goal --</option>';
     goals.forEach((goal, index) => {
-        const truncatedNeed = goal.need.length > 60 ? goal.need.substring(0, 60) + '...' : goal.need;
-        options += `<option value="${index}">Goal ${index + 1}: ${truncatedNeed}</option>`;
+        const title = goal.title || 'Untitled';
+        options += `<option value="${index}">Goal ${index + 1}: ${title}</option>`;
     });
     dropdown.innerHTML = options;
 }
