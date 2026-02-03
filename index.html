@@ -1296,15 +1296,23 @@
                             <span>APS Member Dashboard</span>
                         </a>
                     </div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
                         <label style="font-size: 14px; color: #666;">
                             CPD Year:
                             <select id="cpdYearFilter" onchange="renderCPD()" style="margin-left: 8px; padding: 5px 10px; border: 1px solid #e0e0e0; border-radius: 4px;">
                             </select>
                         </label>
-                        <label style="font-size: 14px; color: #666;">
+                        <label style="font-size: 13px; color: #666; cursor: pointer;">
                             <input type="checkbox" id="cpdFilterCheckbox" onchange="renderCPD()" style="margin-right: 5px;">
                             Show included only
+                        </label>
+                        <label style="font-size: 13px; color: #666; cursor: pointer;">
+                            <input type="checkbox" id="cpdFilterPeerOnly" onchange="renderCPD()" style="margin-right: 5px;">
+                            Show peer consultation only
+                        </label>
+                        <label style="font-size: 13px; color: #666; cursor: pointer;">
+                            <input type="checkbox" id="cpdFilterActivePassiveOnly" onchange="renderCPD()" style="margin-right: 5px;">
+                            Show active & passive only
                         </label>
                     </div>
                 </div>
@@ -3166,10 +3174,12 @@ function renderCPD() {
     list.innerHTML = '';
     
     const showIncludedOnly = document.getElementById('cpdFilterCheckbox').checked;
+    const showPeerOnly = document.getElementById('cpdFilterPeerOnly').checked;
+    const showActivePassiveOnly = document.getElementById('cpdFilterActivePassiveOnly').checked;
     const selectedYear = document.getElementById('cpdYearFilter').value;
-    
+
     let filteredEvents = [...cpdEvents];
-    
+
     // Filter by year
     if (selectedYear) {
         const [startYear, endYear] = selectedYear.split('-').map(Number);
@@ -3177,7 +3187,7 @@ function renderCPD() {
             const eventDate = new Date(e.date);
             const eventYear = eventDate.getFullYear();
             const eventMonth = eventDate.getMonth(); // 0-11
-            
+
             // CPD year runs Dec (month 11) to Nov (month 10)
             if (eventMonth === 11) { // December
                 return eventYear === startYear;
@@ -3186,12 +3196,20 @@ function renderCPD() {
             }
         });
     }
-    
+
     // Filter by included status
     if (showIncludedOnly) {
         filteredEvents = filteredEvents.filter(e => e.includedInCPD);
     }
-    
+
+    // Filter by type
+    if (showPeerOnly) {
+        filteredEvents = filteredEvents.filter(e => e.type === 'peer');
+    }
+    if (showActivePassiveOnly) {
+        filteredEvents = filteredEvents.filter(e => e.type === 'active' || e.type === 'passive');
+    }
+
     // Sort by date, most recent first
     filteredEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
     
