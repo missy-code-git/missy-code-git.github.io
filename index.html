@@ -1352,6 +1352,56 @@
                 </div>
             </div>
 
+            <!-- Self-Assessment Section -->
+            <div id="cpdSelfAssessmentSection" style="margin-bottom: 25px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; font-size: 16px; color: #333;">Annual Self-Assessment</h3>
+                    <div id="cpdSelfAssessmentButtons">
+                        <button id="editSelfAssessmentBtn" onclick="editCPDSelfAssessment()" style="padding: 6px 14px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">Edit</button>
+                    </div>
+                </div>
+
+                <!-- View Mode -->
+                <div id="cpdSelfAssessmentView">
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-weight: 600; color: #555; margin-bottom: 5px; font-size: 13px;">Current Strengths</div>
+                        <div id="selfAssessmentStrengthsView" style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; min-height: 60px; white-space: pre-wrap; color: #333; font-size: 14px;"></div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-weight: 600; color: #555; margin-bottom: 5px; font-size: 13px;">Areas for Development</div>
+                        <div id="selfAssessmentDevelopmentView" style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; min-height: 60px; white-space: pre-wrap; color: #333; font-size: 14px;"></div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-weight: 600; color: #555; margin-bottom: 5px; font-size: 13px;">Emerging Trends or Changes in My Practice Area</div>
+                        <div id="selfAssessmentTrendsView" style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; min-height: 60px; white-space: pre-wrap; color: #333; font-size: 14px;"></div>
+                    </div>
+                    <div id="selfAssessmentHistoryToggle" style="display: none;">
+                        <button onclick="toggleSelfAssessmentHistory()" style="padding: 6px 12px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 12px;">View Previous Versions</button>
+                    </div>
+                    <div id="selfAssessmentHistoryView" style="display: none; margin-top: 15px; border-top: 1px solid #e0e0e0; padding-top: 15px;"></div>
+                </div>
+
+                <!-- Edit Mode -->
+                <div id="cpdSelfAssessmentEdit" style="display: none;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 600; color: #555; margin-bottom: 5px; font-size: 13px;">Current Strengths</label>
+                        <textarea id="selfAssessmentStrengths" rows="4" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px; resize: vertical;" placeholder="Describe your current professional strengths..."></textarea>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 600; color: #555; margin-bottom: 5px; font-size: 13px;">Areas for Development</label>
+                        <textarea id="selfAssessmentDevelopment" rows="4" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px; resize: vertical;" placeholder="Identify areas where you want to grow..."></textarea>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 600; color: #555; margin-bottom: 5px; font-size: 13px;">Emerging Trends or Changes in My Practice Area</label>
+                        <textarea id="selfAssessmentTrends" rows="4" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px; resize: vertical;" placeholder="Note emerging trends, new research, or changes affecting your practice..."></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="saveCPDSelfAssessment()" style="padding: 8px 20px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Save</button>
+                        <button onclick="cancelCPDSelfAssessmentEdit()" style="padding: 8px 20px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="cpdList"></div>
 
             <div class="add-milestone" onclick="openCPDModal()">
@@ -1808,6 +1858,7 @@
         let otherChaptersItems = JSON.parse(localStorage.getItem('phdOtherChapters')) || [];
         let cpdEvents = JSON.parse(localStorage.getItem('phdCPD')) || [];
         let cpdDocuments = JSON.parse(localStorage.getItem('phdCPDDocs')) || [];
+        let cpdSelfAssessments = JSON.parse(localStorage.getItem('phdCPDSelfAssessments')) || {};
 
         function renderMilestones() {
             const list = document.getElementById('milestoneList');
@@ -3092,7 +3143,10 @@ function renderCPD() {
     
     // Calculate hours for selected year
     updateCPDHours(selectedYear);
-    
+
+    // Render self-assessment for selected year
+    renderCPDSelfAssessment();
+
     if (filteredEvents.length === 0) {
         list.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">No activities for this period. Click "+ Add CPD Activity" to get started.</div>';
         return;
@@ -3228,6 +3282,168 @@ function updateCPDHours(selectedYear) {
 
 function saveCPD() {
     localStorage.setItem('phdCPD', JSON.stringify(cpdEvents));
+}
+
+// Self-Assessment Functions
+function saveCPDSelfAssessments() {
+    localStorage.setItem('phdCPDSelfAssessments', JSON.stringify(cpdSelfAssessments));
+}
+
+function renderCPDSelfAssessment() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    if (!selectedYear) return;
+
+    const assessment = cpdSelfAssessments[selectedYear];
+    const viewSection = document.getElementById('cpdSelfAssessmentView');
+    const editSection = document.getElementById('cpdSelfAssessmentEdit');
+
+    // Ensure we're in view mode
+    viewSection.style.display = 'block';
+    editSection.style.display = 'none';
+    document.getElementById('editSelfAssessmentBtn').style.display = 'inline-block';
+
+    // Populate view fields
+    const strengthsView = document.getElementById('selfAssessmentStrengthsView');
+    const developmentView = document.getElementById('selfAssessmentDevelopmentView');
+    const trendsView = document.getElementById('selfAssessmentTrendsView');
+
+    if (assessment && assessment.current) {
+        strengthsView.textContent = assessment.current.strengths || '';
+        developmentView.textContent = assessment.current.areasForDevelopment || '';
+        trendsView.textContent = assessment.current.emergingTrends || '';
+
+        // Set placeholder text if empty
+        strengthsView.innerHTML = assessment.current.strengths || '<span style="color: #999; font-style: italic;">No content yet. Click Edit to add.</span>';
+        developmentView.innerHTML = assessment.current.areasForDevelopment || '<span style="color: #999; font-style: italic;">No content yet. Click Edit to add.</span>';
+        trendsView.innerHTML = assessment.current.emergingTrends || '<span style="color: #999; font-style: italic;">No content yet. Click Edit to add.</span>';
+    } else {
+        strengthsView.innerHTML = '<span style="color: #999; font-style: italic;">No content yet. Click Edit to add.</span>';
+        developmentView.innerHTML = '<span style="color: #999; font-style: italic;">No content yet. Click Edit to add.</span>';
+        trendsView.innerHTML = '<span style="color: #999; font-style: italic;">No content yet. Click Edit to add.</span>';
+    }
+
+    // Show/hide history toggle
+    const historyToggle = document.getElementById('selfAssessmentHistoryToggle');
+    if (assessment && assessment.history && assessment.history.length > 0) {
+        historyToggle.style.display = 'block';
+    } else {
+        historyToggle.style.display = 'none';
+    }
+
+    // Hide history view by default
+    document.getElementById('selfAssessmentHistoryView').style.display = 'none';
+}
+
+function editCPDSelfAssessment() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    if (!selectedYear) return;
+
+    const assessment = cpdSelfAssessments[selectedYear];
+
+    // Populate edit fields with current values
+    document.getElementById('selfAssessmentStrengths').value = assessment?.current?.strengths || '';
+    document.getElementById('selfAssessmentDevelopment').value = assessment?.current?.areasForDevelopment || '';
+    document.getElementById('selfAssessmentTrends').value = assessment?.current?.emergingTrends || '';
+
+    // Switch to edit mode
+    document.getElementById('cpdSelfAssessmentView').style.display = 'none';
+    document.getElementById('cpdSelfAssessmentEdit').style.display = 'block';
+    document.getElementById('editSelfAssessmentBtn').style.display = 'none';
+}
+
+function saveCPDSelfAssessment() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    if (!selectedYear) return;
+
+    const strengths = document.getElementById('selfAssessmentStrengths').value.trim();
+    const areasForDevelopment = document.getElementById('selfAssessmentDevelopment').value.trim();
+    const emergingTrends = document.getElementById('selfAssessmentTrends').value.trim();
+
+    // Initialize year entry if it doesn't exist
+    if (!cpdSelfAssessments[selectedYear]) {
+        cpdSelfAssessments[selectedYear] = {
+            current: null,
+            history: []
+        };
+    }
+
+    // If there's existing current content, move it to history
+    if (cpdSelfAssessments[selectedYear].current) {
+        const oldContent = cpdSelfAssessments[selectedYear].current;
+        // Only save to history if content has changed
+        if (oldContent.strengths !== strengths ||
+            oldContent.areasForDevelopment !== areasForDevelopment ||
+            oldContent.emergingTrends !== emergingTrends) {
+            cpdSelfAssessments[selectedYear].history.unshift({
+                strengths: oldContent.strengths,
+                areasForDevelopment: oldContent.areasForDevelopment,
+                emergingTrends: oldContent.emergingTrends,
+                savedAt: oldContent.lastUpdated
+            });
+        }
+    }
+
+    // Save new current content
+    cpdSelfAssessments[selectedYear].current = {
+        strengths: strengths,
+        areasForDevelopment: areasForDevelopment,
+        emergingTrends: emergingTrends,
+        lastUpdated: new Date().toISOString()
+    };
+
+    saveCPDSelfAssessments();
+    renderCPDSelfAssessment();
+}
+
+function cancelCPDSelfAssessmentEdit() {
+    document.getElementById('cpdSelfAssessmentView').style.display = 'block';
+    document.getElementById('cpdSelfAssessmentEdit').style.display = 'none';
+    document.getElementById('editSelfAssessmentBtn').style.display = 'inline-block';
+}
+
+function toggleSelfAssessmentHistory() {
+    const selectedYear = document.getElementById('cpdYearFilter').value;
+    const historyView = document.getElementById('selfAssessmentHistoryView');
+
+    if (historyView.style.display === 'none') {
+        const assessment = cpdSelfAssessments[selectedYear];
+        if (!assessment || !assessment.history || assessment.history.length === 0) {
+            historyView.innerHTML = '<p style="color: #999; font-style: italic;">No previous versions.</p>';
+        } else {
+            let html = '<h4 style="margin: 0 0 15px 0; font-size: 14px; color: #666;">Previous Versions</h4>';
+            assessment.history.forEach((version, index) => {
+                const date = new Date(version.savedAt);
+                const formattedDate = date.toLocaleDateString('en-AU', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                html += `
+                    <div style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 15px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #999; margin-bottom: 10px;">Saved: ${formattedDate}</div>
+                        <div style="margin-bottom: 10px;">
+                            <div style="font-weight: 600; color: #555; font-size: 12px; margin-bottom: 3px;">Current Strengths</div>
+                            <div style="font-size: 13px; white-space: pre-wrap;">${version.strengths || '<em style="color: #999;">Empty</em>'}</div>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <div style="font-weight: 600; color: #555; font-size: 12px; margin-bottom: 3px;">Areas for Development</div>
+                            <div style="font-size: 13px; white-space: pre-wrap;">${version.areasForDevelopment || '<em style="color: #999;">Empty</em>'}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #555; font-size: 12px; margin-bottom: 3px;">Emerging Trends or Changes</div>
+                            <div style="font-size: 13px; white-space: pre-wrap;">${version.emergingTrends || '<em style="color: #999;">Empty</em>'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            historyView.innerHTML = html;
+        }
+        historyView.style.display = 'block';
+    } else {
+        historyView.style.display = 'none';
+    }
 }
 
 // Modal functions
