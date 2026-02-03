@@ -1834,7 +1834,7 @@
                     <span>Include in endorsement</span>
                 </label>
                 <p style="color: #666; font-size: 12px; margin-top: 5px; margin-left: 28px;">
-                    Only active CPD relevant to Organisational Psychology should be included for endorsement
+                    Only active/passive CPD relevant to Organisational Psychology should be included for endorsement
                 </p>
             </div>
             <div class="modal-buttons">
@@ -3286,7 +3286,7 @@ function renderCPD() {
                         <span style="background: ${typeInfo.bg}; color: ${typeInfo.color}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${typeInfo.text}</span>
                         <span style="background: #f5f5f5; color: #666; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${event.hours || 0}h</span>
                         ${event.includedInCPD ? '<span style="background: #4caf50; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">✓ Included</span>' : ''}
-                        ${event.type === 'active' && event.includeInEndorsement ? '<span style="background: #9c27b0; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">✓ Endorsement</span>' : ''}
+                        ${(event.type === 'active' || event.type === 'passive') && event.includeInEndorsement ? '<span style="background: #9c27b0; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">✓ Endorsement</span>' : ''}
                     </div>
                     <div class="milestone-date">${formatDate(event.date)}</div>
                 </div>
@@ -3625,45 +3625,67 @@ function renderCPDLearningGoals() {
         const hasHistory = goal.history && goal.history.length > 0;
         html += `
             <div style="background: white; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                    <div>
-                        <div style="font-weight: 600; color: #333; font-size: 14px;">Goal ${index + 1}: ${goal.title || 'Untitled'}</div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div style="flex: 1; cursor: pointer;" onclick="toggleLearningGoalDetails(${index})">
+                        <div style="font-weight: 600; color: #333; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                            <span id="learningGoalArrow-${index}" style="transition: transform 0.2s;">▶</span>
+                            Goal ${index + 1}: ${goal.title || 'Untitled'}
+                        </div>
                     </div>
-                    <button onclick="openEditLearningGoalModal(${index})" style="padding: 4px 10px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 12px;">Edit</button>
+                    <button onclick="event.stopPropagation(); openEditLearningGoalModal(${index})" style="padding: 4px 10px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 12px;">Edit</button>
                 </div>
-                <div style="display: grid; gap: 10px;">
-                    <div>
-                        <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Learning Need</div>
-                        <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.need || ''}</div>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Rationale</div>
-                        <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.rationale || ''}</div>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Learning Objectives</div>
-                        <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.objectives || ''}</div>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Planned Activities</div>
-                        <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.activities || ''}</div>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Expected Outcomes</div>
-                        <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.outcomes || ''}</div>
-                    </div>
+
+                <!-- Summary: Planned Activities (always visible) -->
+                <div style="margin-left: 20px;">
+                    <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Planned Activities</div>
+                    <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.activities || ''}</div>
                 </div>
-                ${hasHistory ? `
-                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
-                        <button onclick="toggleLearningGoalHistory(${index})" style="padding: 4px 10px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 11px;">View Previous Versions (${goal.history.length})</button>
-                        <div id="learningGoalHistory-${index}" style="display: none; margin-top: 10px;"></div>
+
+                <!-- Expandable Details -->
+                <div id="learningGoalDetails-${index}" style="display: none; margin-top: 12px; margin-left: 20px; padding-top: 12px; border-top: 1px solid #eee;">
+                    <div style="display: grid; gap: 10px;">
+                        <div>
+                            <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Learning Need</div>
+                            <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.need || ''}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Rationale</div>
+                            <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.rationale || ''}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Learning Objectives</div>
+                            <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.objectives || ''}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #555; font-size: 11px; text-transform: uppercase; margin-bottom: 3px;">Expected Outcomes</div>
+                            <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${goal.outcomes || ''}</div>
+                        </div>
                     </div>
-                ` : ''}
+                    ${hasHistory ? `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                            <button onclick="event.stopPropagation(); toggleLearningGoalHistory(${index})" style="padding: 4px 10px; background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 11px;">View Previous Versions (${goal.history.length})</button>
+                            <div id="learningGoalHistory-${index}" style="display: none; margin-top: 10px;"></div>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
         `;
     });
 
     container.innerHTML = html;
+}
+
+function toggleLearningGoalDetails(index) {
+    const detailsDiv = document.getElementById(`learningGoalDetails-${index}`);
+    const arrow = document.getElementById(`learningGoalArrow-${index}`);
+
+    if (detailsDiv.style.display === 'none') {
+        detailsDiv.style.display = 'block';
+        arrow.style.transform = 'rotate(90deg)';
+    } else {
+        detailsDiv.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+    }
 }
 
 function openLearningGoalModal() {
@@ -3914,8 +3936,8 @@ function toggleEndorsementCheckbox() {
     const peerReflectionGroup = document.getElementById('peerReflectionGroup');
     const activePassiveReflectionGroup = document.getElementById('activePassiveReflectionGroup');
 
-    // Toggle endorsement checkbox (only for active)
-    if (cpdType === 'active') {
+    // Toggle endorsement checkbox (for active and passive)
+    if (cpdType === 'active' || cpdType === 'passive') {
         endorsementGroup.style.display = 'block';
     } else {
         endorsementGroup.style.display = 'none';
@@ -3953,7 +3975,7 @@ function addCPD() {
     const type = document.getElementById('cpdType').value;
     const hours = parseFloat(document.getElementById('cpdHours').value) || 0;
     const includedInCPD = document.getElementById('cpdIncluded').checked;
-    const includeInEndorsement = type === 'active' ? document.getElementById('cpdIncludeInEndorsement').checked : false;
+    const includeInEndorsement = (type === 'active' || type === 'passive') ? document.getElementById('cpdIncludeInEndorsement').checked : false;
 
     // Get reflection fields based on type
     let reflection = '';
@@ -4047,7 +4069,7 @@ function updateCPD() {
     const type = document.getElementById('cpdType').value;
     const hours = parseFloat(document.getElementById('cpdHours').value) || 0;
     const includedInCPD = document.getElementById('cpdIncluded').checked;
-    const includeInEndorsement = type === 'active' ? document.getElementById('cpdIncludeInEndorsement').checked : false;
+    const includeInEndorsement = (type === 'active' || type === 'passive') ? document.getElementById('cpdIncludeInEndorsement').checked : false;
 
     // Get reflection fields based on type
     let reflection = '';
@@ -6431,9 +6453,9 @@ function goToOtherChapters(index) {
             document.getElementById('endorsementSupervisionHours').textContent = totalSupervisionHours.toFixed(1);
             document.getElementById('endorsementSupervisionProgress').style.width = Math.min((totalSupervisionHours / 80) * 100, 100) + '%';
             
-            // Calculate active CPD hours from CPD tab
+            // Calculate active/passive CPD hours from CPD tab (for endorsement)
             const activeCPDHours = cpdEvents
-                .filter(e => e.includedInCPD && e.type === 'active' && e.includeInEndorsement !== false)
+                .filter(e => e.includedInCPD && (e.type === 'active' || e.type === 'passive') && e.includeInEndorsement)
                 .reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
             document.getElementById('endorsementActiveCPDHours').textContent = activeCPDHours.toFixed(1);
             document.getElementById('endorsementActiveCPDProgress').style.width = Math.min((activeCPDHours / 80) * 100, 100) + '%';
