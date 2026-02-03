@@ -1809,6 +1809,10 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label>Reflection Journal</label>
+                    <textarea id="cpdReflectionActivePassive" placeholder="Reflect on what you learned and how it relates to your practice..." style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div class="form-group">
                     <label>What I Learned</label>
                     <textarea id="cpdWhatLearned" placeholder="Describe what you learned from this activity..." style="width: 100%; min-height: 60px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
                 </div>
@@ -3302,11 +3306,17 @@ function renderCPD() {
                 </div>
             ` : ''}
 
-            ${(event.type === 'active' || event.type === 'passive') && (event.whatLearned || event.goalMet || event.practiceImpact || event.linkedGoal) ? `
+            ${(event.type === 'active' || event.type === 'passive') && (event.reflection || event.whatLearned || event.goalMet || event.practiceImpact || event.linkedGoal) ? `
                 <div style="margin-top: 10px; padding: 10px; background: #fffbf0; border-left: 3px solid #ffc107; border-radius: 4px;">
                     ${event.linkedGoal !== '' && event.linkedGoal !== undefined ? `
                         <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
                             <strong>Linked to:</strong> Goal ${parseInt(event.linkedGoal) + 1}${cpdLearningGoals[selectedYear] && cpdLearningGoals[selectedYear][event.linkedGoal] && cpdLearningGoals[selectedYear][event.linkedGoal].title ? ': ' + cpdLearningGoals[selectedYear][event.linkedGoal].title : ''}
+                        </div>
+                    ` : ''}
+                    ${event.reflection ? `
+                        <div style="margin-bottom: 8px;">
+                            <div style="font-size: 12px; color: #666; margin-bottom: 3px; font-weight: 600;">Reflection Journal</div>
+                            <div style="font-size: 13px; color: #333; white-space: pre-wrap;">${event.reflection}</div>
                         </div>
                     ` : ''}
                     ${event.whatLearned ? `
@@ -3908,6 +3918,7 @@ function openCPDModal() {
     document.getElementById('cpdHours').value = '';
     document.getElementById('cpdReflection').value = '';
     document.getElementById('cpdLinkedGoal').value = '';
+    document.getElementById('cpdReflectionActivePassive').value = '';
     document.getElementById('cpdWhatLearned').value = '';
     document.getElementById('cpdGoalMet').value = '';
     document.getElementById('cpdPracticeImpact').value = '';
@@ -3987,6 +3998,7 @@ function addCPD() {
     if (type === 'peer') {
         reflection = document.getElementById('cpdReflection').value.trim();
     } else {
+        reflection = document.getElementById('cpdReflectionActivePassive').value.trim();
         linkedGoal = document.getElementById('cpdLinkedGoal').value;
         whatLearned = document.getElementById('cpdWhatLearned').value.trim();
         goalMet = document.getElementById('cpdGoalMet').value.trim();
@@ -4040,6 +4052,7 @@ function openEditCPDModal(index) {
     document.getElementById('cpdType').value = event.type || 'active';
     document.getElementById('cpdHours').value = event.hours || '';
     document.getElementById('cpdReflection').value = event.reflection || '';
+    document.getElementById('cpdReflectionActivePassive').value = event.reflection || '';
     document.getElementById('cpdWhatLearned').value = event.whatLearned || '';
     document.getElementById('cpdGoalMet').value = event.goalMet || '';
     document.getElementById('cpdPracticeImpact').value = event.practiceImpact || '';
@@ -4081,6 +4094,7 @@ function updateCPD() {
     if (type === 'peer') {
         reflection = document.getElementById('cpdReflection').value.trim();
     } else {
+        reflection = document.getElementById('cpdReflectionActivePassive').value.trim();
         linkedGoal = document.getElementById('cpdLinkedGoal').value;
         whatLearned = document.getElementById('cpdWhatLearned').value.trim();
         goalMet = document.getElementById('cpdGoalMet').value.trim();
